@@ -9,6 +9,7 @@ __pycache__/
 src/token.json
 credentials.json
 messages.json
+deleted-messages.json
 # Distribution / packaging
 .Python
 build/
