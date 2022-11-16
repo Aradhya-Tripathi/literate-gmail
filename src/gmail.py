@@ -3,12 +3,9 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from api import API
-from utils import confirm
+from utils import PrintWithModule, confirm
 
-"""
-Using Google's Client API is useless
-it's shitty doesn't even complete suggestions wtf.
-"""
+print_with_module = PrintWithModule("GMAIL")
 
 
 class Gmail:
@@ -62,7 +59,7 @@ class Messages(Gmail):
         return list(map(_remove_from, message_ids))
 
     def save_deleted_messages(self, deleted_messages: dict, save_path: str):
-        print(f"Writing {len(deleted_messages)} lines to {save_path}")
+        print_with_module(f"Writing {len(deleted_messages)} lines to {save_path}")
         with open(save_path, "w") as f:
             f.write(json.dumps(deleted_messages, indent=4))
 
@@ -93,8 +90,8 @@ class Messages(Gmail):
                 if detail in self.messages:
                     to_delete_with_snippet[detail] = self.messages[detail]
 
-            print(
-                f"[MESSAGES] Writing {len(to_delete_with_snippet)} lines to {deleted_message_path}"
+            print_with_module(
+                "Writing {len(to_delete_with_snippet)} lines to {deleted_message_path}"
             )
             with open(deleted_message_path, "w") as dm:
                 dm.write(json.dumps(to_delete_with_snippet, indent=4))
@@ -112,7 +109,7 @@ class Messages(Gmail):
         From-messageId: Snippet
         """
         message_id = messages["id"]
-        print("Working on: ", message_id)
+        print_with_module("Working on: ", message_id)
         try:
             message = self.service.messages(
                 userId=self.userId, resource=message_id
@@ -123,20 +120,24 @@ class Messages(Gmail):
                     self.messages[f"{index['value']}-{message_id}"] = message["snippet"]
                     self.lock.release()
         except Exception as e:
-            print(f"Message Id Errored Out: {message_id}\nException: {e}")
+            print_with_module(f"Message Id Errored Out: {message_id}\nException: {e}")
 
-    def scan_messages(self, maxResults: int = 100):
+    def scan_messages(self, maxResults: int = 100, multi_thread_config: dict = {}):
         """
         Scan from and first 100 messages in users inbox.
         """
         self.lock = threading.Lock()
         mails = self.list(maxResults=maxResults)
         self.message_and_thread_ids.extend(mails["messages"])
-
-        with ThreadPoolExecutor(max_workers=10) as exc:
-            list(
-                exc.map(self._scan_message_from_message_id, self.message_and_thread_ids)
-            )
+        if multi_thread_config:
+            with ThreadPoolExecutor(
+                max_workers=multi_thread_config.get("num_workers")
+            ) as exc:
+                list(
+                    exc.map(
+                        self._scan_message_from_message_id, self.message_and_thread_ids
+                    )
+                )
 
 
 class Users(Gmail):
@@ -149,7 +150,7 @@ class Users(Gmail):
         response = self.service.users(userId=self.userId, resource="profile").dispatch(
             method="get", params={"prettyPrint": True}
         )
-        print(response)
+        print_with_module(response)
 
 
 if __name__ == "__main__":

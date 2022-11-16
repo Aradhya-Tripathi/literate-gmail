@@ -3,8 +3,10 @@ import json
 import requests
 
 from auth import get_credentials
+from utils import PrintWithModule
 
 client = requests.Session()
+print_with_module = PrintWithModule("API")
 
 
 class API:
@@ -56,11 +58,13 @@ class API:
         )
         if not response.ok:
             raise ValueError(
-                f"Request failed response: {response.status_code}\nReason: {response.json()}"
+                f"[API] Request failed response: {response.status_code}\nReason: {response.json()}"
             )
         if self.always_json:
             try:
                 return response.json()
             except requests.exceptions.JSONDecodeError:
-                print(f"[API] Retured no data with status code: {response.status_code}")
+                print_with_module(
+                    f"Retured no data with status code: {response.status_code}"
+                )
         return response
