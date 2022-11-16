@@ -9,36 +9,43 @@ client = requests.Session()
 print_with_module = PrintWithModule("API")
 
 
-class API:
+class GmailAPI:
     def __init__(
         self,
         version: str = "v1",
-        service: str = "gmail",
         authentication_type: str = "Bearer",
         always_json: bool = True,
         new_user: bool = False,
     ) -> None:
+        """
+        All these methods could be jammed into one method however in this case,
+        method chaining seems more readable and usage. :)
+        """
         # Since here we are using OAuth2.0 we need an access token on user's behalf
         # Since this Token is on users behalf we use the Bearer Token type.
         self.creds = json.loads(get_credentials(new_user=new_user))
         self.always_json = always_json
         self.client = client
-        self.base_url = f"https://gmail.googleapis.com/{service}/{version}/"
+        self.base_url = f"https://gmail.googleapis.com/gmail/{version}/"
         self.headers = {
             "Content-Type": "application/json",
             "Authorization": f"{authentication_type} {self.creds['token']}",
         }
 
+    def users(self, userId: str, resource: str):
+        self.current_request = self.base_url + f"users/{userId}/{resource}"
+        return self
+
     def messages(self, userId: str, resource: str = None):
         """Defaults to constructing `users.messages.list` to send request to
         any other resource send in the resource argument"""
-        self.current_request = (
-            self.base_url + f"users/{userId}/messages/{resource if resource else ''}"
-        )
+        resource = f"messages/{resource if resource else ''}"
+        self.users(userId, resource=resource)
         return self
 
-    def users(self, userId: str, resource: str):
-        self.current_request = self.base_url + f"users/{userId}/{resource}"
+    def drafts(self, userId: str, resource: str = None):
+        resource = f"drafts/{resource if resource else ''}"
+        self.users(userId, resource=resource)
         return self
 
     def dispatch(
