@@ -6,7 +6,7 @@ with open("./requirements.txt", "r") as req:
 setup(
     name="googleatclient",
     author_email="aradhyatripathi51@gmail.com",
-    version="0.1.0",
+    version="0.1.2",
     packages=find_packages(),
     license="MIT",
     install_requires=requirements,

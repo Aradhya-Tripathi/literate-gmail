@@ -21,9 +21,11 @@ print_with_module = PrintWithModule("GMAIL")
 
 
 class Gmail:
-    def __init__(
-        self, userId: str = "aradhyatripathi51@gmail.com", new_user: bool = False
-    ) -> None:
+    """
+    Using 'me' as userId as it avoids domain-wide delegation errors.
+    """
+
+    def __init__(self, userId: str = "me", new_user: bool = False) -> None:
         self.userId = userId
         self.service = self.resource(new_user=new_user)
 
@@ -32,9 +34,7 @@ class Gmail:
 
 
 class Messages(Gmail):
-    def __init__(
-        self, userId: str = "aradhyatripathi51@gmail.com", new_user: bool = False
-    ) -> None:
+    def __init__(self, userId: str = "me", new_user: bool = False) -> None:
         super().__init__(userId, new_user)
         self.messages_path = os.path.join(
             Path(__file__).resolve().parent.parent.parent, "messages"
