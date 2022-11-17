@@ -1,14 +1,16 @@
 import json
+import os
 import threading
 import typing
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from googleclient.gmail.api import GmailAPI
 from googleclient.utils import (
     PrintWithModule,
-    confirm,
     _apply_batch_delete_filters,
     apply_filters,
+    confirm,
 )
 
 if typing.TYPE_CHECKING:
@@ -30,6 +32,16 @@ class Gmail:
 
 
 class Messages(Gmail):
+    def __init__(
+        self, userId: str = "aradhyatripathi51@gmail.com", new_user: bool = False
+    ) -> None:
+        super().__init__(userId, new_user)
+        self.messages_path = os.path.join(
+            Path(__file__).resolve().parent.parent.parent, "messages"
+        )
+        if not os.path.exists(self.messages_path):
+            os.mkdir(self.messages_path)
+
     def list(self, maxResults: int = 100):
         """
         Function representing users.messages.list
@@ -51,8 +63,9 @@ class Messages(Gmail):
     def batchDelete(
         self,
         filters: dict = {},
+        message_ids: list = None,
         save_deleted_messages: bool = True,
-        deleted_message_path: str = "./deleted-messages.json",
+        deleted_message_path: str = None,
         **kwargs,
     ):
         """
@@ -60,33 +73,44 @@ class Messages(Gmail):
             {keyword: key}
         """
         to_delete = []
-        self.scan_messages(**kwargs)
-        if filters:
-            to_delete = apply_filters(self.messages, filters)
+        if not message_ids:
+            self.scan_messages(**kwargs)
+            if filters:
+                to_delete = apply_filters(self.messages, filters)
+            else:
+                to_delete.extend(list(self.messages.keys()))
+                if not confirm(
+                    action=f"Are you sure you want to proceed with the deletion of {len(to_delete)} messages??? n/Y: "
+                ):
+                    exit()
+
+            if save_deleted_messages:
+                to_delete_with_snippet = {}
+                for detail in to_delete:
+                    if detail in self.messages:
+                        to_delete_with_snippet[detail] = self.messages[detail]
+
+                deleted_message_path = (
+                    deleted_message_path
+                    if deleted_message_path
+                    else os.path.join(self.messages_path, "deleted-messages.json")
+                )
+
+                print_with_module(
+                    f"Writing {len(to_delete_with_snippet)} lines to {deleted_message_path}"
+                )
+                with open(deleted_message_path, "w") as dm:
+                    dm.write(json.dumps(to_delete_with_snippet, indent=4))
+
+            to_delete = _apply_batch_delete_filters(to_delete)
         else:
-            to_delete.extend(list(self.messages.keys()))
-            if not confirm(
-                action=f"Are you sure you want to proceed with the deletion of {len(to_delete)} messages??? n/Y: "
-            ):
-                exit()
-        if save_deleted_messages:
-            to_delete_with_snippet = {}
-            for detail in to_delete:
-                if detail in self.messages:
-                    to_delete_with_snippet[detail] = self.messages[detail]
+            to_delete = message_ids
 
-            print_with_module(
-                f"Writing {len(to_delete_with_snippet)} lines to {deleted_message_path}"
-            )
-            with open(deleted_message_path, "w") as dm:
-                dm.write(json.dumps(to_delete_with_snippet, indent=4))
-
-        to_delete = _apply_batch_delete_filters(to_delete)
-
-        self.service.messages(
-            userId=self.userId,
-            resource="batchDelete",
-        ).dispatch(method="post", json=dict(ids=to_delete))
+        if to_delete:
+            self.service.messages(
+                userId=self.userId,
+                resource="batchDelete",
+            ).dispatch(method="post", json=dict(ids=to_delete))
 
     def _scan_message_from_message_id(self, messages: dict):
         """
@@ -108,7 +132,10 @@ class Messages(Gmail):
             print_with_module(f"Message Id Errored Out: {message_id}\nException: {e}")
 
     def scan_messages(
-        self, maxResults: int = 100, multi_thread_config: dict = {"num_workers": 10}
+        self,
+        save_messages_path: str = None,
+        maxResults: int = 100,
+        multi_thread_config: dict = {"num_workers": 10},
     ):
         """
         Scan from and first 100 messages in users inbox.
@@ -125,6 +152,13 @@ class Messages(Gmail):
                         self._scan_message_from_message_id, self.message_and_thread_ids
                     )
                 )
+        save_messages_path = (
+            save_messages_path
+            if save_messages_path
+            else os.path.join(self.messages_path, "saved-messages.json")
+        )
+        with open(save_messages_path, "w") as sm:
+            sm.write(json.dumps(self.messages, indent=4))
 
 
 class Drafts(Gmail):

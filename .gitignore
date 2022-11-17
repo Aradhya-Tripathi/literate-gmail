@@ -8,6 +8,7 @@ __pycache__/
 .vscode
 secure/
 messages.json
+messages/
 deleted-messages.json
 # Distribution / packaging
 .Python
