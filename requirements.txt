@@ -8,7 +8,6 @@ google-auth==2.14.1
 google-auth-httplib2==0.1.0
 google-auth-oauthlib==0.7.1
 googleapis-common-protos==1.56.4
--e git+ssh://git@github.com/Aradhya-Tripathi/literate-gmail.git@fa0d5859dec0555bfcbc5ca63ae604b749b8f8c4#egg=googleclient
 httplib2==0.21.0
 idna==3.4
 mypy-extensions==0.4.3
