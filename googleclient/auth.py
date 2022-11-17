@@ -1,8 +1,8 @@
 import os
+from pathlib import Path
+
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
-from pathlib import Path
-from functools import lru_cache
 
 SCOPES = ["https://mail.google.com/"]
 PARENT_PATH = Path(__file__).resolve().parent.parent
@@ -10,7 +10,20 @@ CREDENTIALS_PATH = os.path.join(PARENT_PATH, "secure", "credentials.json")
 TOKEN_PATH = os.path.join(PARENT_PATH, "secure", "token.json")
 
 
-@lru_cache(maxsize=10)
+def authenticate(
+    credentials_path: str = CREDENTIALS_PATH, token_path: str = TOKEN_PATH
+) -> dict:
+    flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
+    creds = flow.run_local_server(
+        port=0,
+        success_message="Successfully Authenticate. You may close this window now",
+    )
+    with open(token_path, "w") as token:
+        token.write((creds.to_json()))
+    return creds.to_json()
+
+
+# @lru_cache(maxsize=10)
 def get_credentials(
     credentials_path: str = CREDENTIALS_PATH,
     token_path: str = TOKEN_PATH,
@@ -21,11 +34,7 @@ def get_credentials(
             raise ValueError(
                 f"Create a credentials file here {CREDENTIALS_PATH} obtained from google oauth client setup"
             )
-        flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
-        creds = flow.run_local_server(port=0)
-        with open(token_path, "w") as token:
-            token.write((creds.to_json()))
-        return creds.to_json()
+        return authenticate(credentials_path, token_path)
 
     if new_user:
         return _new()
