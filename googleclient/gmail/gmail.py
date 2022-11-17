@@ -3,8 +3,13 @@ import threading
 import typing
 from concurrent.futures import ThreadPoolExecutor
 
-from api import GmailAPI
-from utils import PrintWithModule, confirm, _apply_batch_delete_filters, apply_filters
+from googleclient.gmail.api import GmailAPI
+from googleclient.utils import (
+    PrintWithModule,
+    confirm,
+    _apply_batch_delete_filters,
+    apply_filters,
+)
 
 if typing.TYPE_CHECKING:
     from email.message import EmailMessage
@@ -25,11 +30,6 @@ class Gmail:
 
 
 class Messages(Gmail):
-    def __init__(
-        self, userId: str = "aradhyatripathi51@gmail.com", new_user: bool = False
-    ) -> None:
-        super().__init__(userId, new_user)
-
     def list(self, maxResults: int = 100):
         """
         Function representing users.messages.list
@@ -128,11 +128,6 @@ class Messages(Gmail):
 
 
 class Drafts(Gmail):
-    def __init__(
-        self, userId: str = "aradhyatripathi51@gmail.com", new_user: bool = False
-    ) -> None:
-        super().__init__(userId, new_user)
-
     def _encode_draft_message(self, message: "EmailMessage"):
         import base64
 
@@ -169,17 +164,12 @@ class Drafts(Gmail):
         )
 
 
-class Users(Gmail):
-    def __init__(
-        self, userId: str = "aradhyatripathi51@gmail.com", new_user: bool = False
-    ) -> None:
-        super().__init__(userId, new_user)
+class History(Gmail):
+    ...
 
+
+class Users(Gmail):
     def getProfile(self):
         return self.service.users(userId=self.userId, resource="profile").dispatch(
             method="get", params={"prettyPrint": True}
         )
-
-
-if __name__ == "__main__":
-    print(Users().getProfile())
