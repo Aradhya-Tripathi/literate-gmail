@@ -2,8 +2,8 @@ import json
 
 import requests
 
-from auth import get_credentials
-from utils import PrintWithModule
+from googleclient.auth import get_credentials
+from googleclient.utils import PrintWithModule
 
 client = requests.Session()
 print_with_module = PrintWithModule("API")
