@@ -56,7 +56,7 @@ class Messages(Gmail):
         """
         Function representing users.messages.delete
         """
-        self.service.messages(userId=self.userId, resource=message_id).dispatch(
+        return self.service.messages(userId=self.userId, resource=message_id).dispatch(
             method="delete"
         )
 
@@ -167,30 +167,32 @@ class Drafts(Gmail):
 
         return base64.urlsafe_b64encode(message.as_string().encode()).decode()
 
-    def createDraft(self, message: "EmailMessage"):
+    def create(self, message: "EmailMessage"):
         encoded_message = self._encode_draft_message(message=message)
         return self.service.drafts(userId=self.userId).dispatch(
             method="post",
             json={"message": {"raw": encoded_message}},
         )
 
-    def deleteDraft(self, id: str):
-        self.service.drafts(userId=self.userId, resource=id).dispatch(method="delete")
+    def delete(self, id: str):
+        return self.service.drafts(userId=self.userId, resource=id).dispatch(
+            method="delete"
+        )
 
-    def getDraft(self, id: str):
+    def get(self, id: str):
         return self.service.drafts(userId=self.userId, resource=id).dispatch(
             method="get"
         )
 
-    def listDraft(self):
+    def list(self):
         return self.service.drafts(userId=self.userId).dispatch(method="get")
 
-    def sendDraft(self, id: str):
+    def send(self, id: str):
         return self.service.drafts(userId=self.userId, resource="send").dispatch(
             method="post", json=dict(id=id)
         )
 
-    def updateDraft(self, id: str, message: "EmailMessage"):
+    def update(self, id: str, message: "EmailMessage"):
         encoded_message = self._encode_draft_message(message=message)
         return self.service.drafts(userId=self.userId, resource=id).dispatch(
             method="put",
@@ -199,7 +201,8 @@ class Drafts(Gmail):
 
 
 class History(Gmail):
-    ...
+    def list(self, **kwargs):
+        return self.service.history(userId=self.userId).dispatch(method="get", **kwargs)
 
 
 class Users(Gmail):

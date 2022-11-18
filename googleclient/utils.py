@@ -2,7 +2,7 @@ import sys
 
 
 def confirm(action: str = None):
-    choice = input(action)
+    choice = input(action).lower()
     go_ahead = False
     if choice == "y":
         go_ahead = True

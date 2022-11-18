@@ -1,4 +1,5 @@
 import json
+import os
 
 import requests
 
@@ -7,6 +8,16 @@ from googleclient.utils import PrintWithModule
 
 client = requests.Session()
 print_with_module = PrintWithModule("API")
+standard_params = {
+    "alt": "json",
+    "uploadType": None,
+    "quotaUser": None,
+    "fields": None,
+    "callback": None,
+    "upload_protocal": None,
+    "access_token": None,
+    "prettyPrint": True,
+}
 
 
 class GmailAPI:
@@ -48,30 +59,52 @@ class GmailAPI:
         self.users(userId, resource=resource)
         return self
 
+    def history(self, userId: str):
+        resource = "history"
+        self.users(userId, resource)
+        return self
+
     def dispatch(
         self,
         method: str,
         data: dict = None,
         params: dict = None,
-        json: str = None,
+        json: dict = None,
+        standard_params: dict = standard_params,
     ):
-        method = getattr(self.client, method)
-        response = method(
+        def _send():
+            response = self.client.send(request=prepared_request, timeout=5)
+            if not response.ok:
+                try:
+                    reason = response.json()
+                except requests.exceptions.JSONDecodeError:
+                    reason = "Unknown"
+                raise ValueError(
+                    f"[API] Request failed response: {response.status_code}\nReason: {reason}"
+                )
+            if self.always_json:
+                try:
+                    return response.json()
+                except requests.exceptions.JSONDecodeError:
+                    print_with_module(
+                        f"Retured no data with status code: {response.status_code}"
+                    )
+            return response
+
+        if params:
+            params.update(standard_params)
+        else:
+            params = standard_params
+
+        request = requests.Request(
+            method=method,
             url=self.current_request,
-            data=data,
+            headers=self.headers,
             json=json,
             params=params,
-            headers=self.headers,
+            data=data,
         )
-        if not response.ok:
-            raise ValueError(
-                f"[API] Request failed response: {response.status_code}\nReason: {response.json()}"
-            )
-        if self.always_json:
-            try:
-                return response.json()
-            except requests.exceptions.JSONDecodeError:
-                print_with_module(
-                    f"Retured no data with status code: {response.status_code}"
-                )
-        return response
+        prepared_request = self.client.prepare_request(request=request)
+        if os.getenv("CI"):
+            return prepared_request
+        return _send()

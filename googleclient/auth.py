@@ -16,14 +16,13 @@ def authenticate(
     flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
     creds = flow.run_local_server(
         port=0,
-        success_message="Successfully Authenticate. You may close this window now",
+        success_message="Successfully Authenticate. You may close this window now.",
     )
     with open(token_path, "w") as token:
         token.write((creds.to_json()))
     return creds.to_json()
 
 
-# @lru_cache(maxsize=10)
 def get_credentials(
     credentials_path: str = CREDENTIALS_PATH,
     token_path: str = TOKEN_PATH,
