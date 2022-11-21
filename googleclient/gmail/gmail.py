@@ -3,6 +3,7 @@ import os
 import threading
 import typing
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from pathlib import Path
 
 from googleclient.gmail.api import GmailAPI
@@ -112,24 +113,42 @@ class Messages(Gmail):
                 resource="batchDelete",
             ).dispatch(method="post", json=dict(ids=to_delete))
 
-    def _scan_message_from_message_id(self, messages: dict):
-        """
-        Populates the self.messages dict in the format
-        From-messageId: Snippet
-        """
-        message_id = messages["id"]
-        print_with_module("Working on: ", message_id)
+    def get_message_from_message_id(self, message_id, in_thread: bool = False):
         try:
             message = self.service.messages(
                 userId=self.userId, resource=message_id
             ).dispatch(method="get")
             for index in message["payload"]["headers"]:
                 if index["name"] == "From":
-                    self.lock.acquire()
-                    self.messages[f"{index['value']}-{message_id}"] = message["snippet"]
-                    self.lock.release()
+                    if in_thread:
+                        self.lock.acquire()
+                        self.messages[f"{index['value']}-{message_id}"] = message[
+                            "snippet"
+                        ]
+                        self.lock.release()
+                    else:
+                        self.messages[f"{index['value']}-{message_id}"] = message[
+                            "snippet"
+                        ]
         except Exception as e:
             print_with_module(f"Message Id Errored Out: {message_id}\nException: {e}")
+
+    def _scan_message_from_message_id(self, messages: dict, in_thread: bool = False):
+        """
+        Populates the self.messages dict in the format
+        From-messageId: Snippet
+        """
+        if isinstance(messages, list):
+            for message in messages:
+                message_id = message["id"]
+                print_with_module("Working on: ", message_id)
+                self.get_message_from_message_id(
+                    message_id=message_id, in_thread=in_thread
+                )
+        else:
+            message_id = messages["id"]
+            print_with_module("Working on: ", message_id)
+            self.get_message_from_message_id(message_id=message_id, in_thread=in_thread)
 
     def scan_messages(
         self,
@@ -139,19 +158,25 @@ class Messages(Gmail):
     ):
         """
         Scan from and first 100 messages in users inbox.
+        to be used only by the batchDelete Message API
+        for easy use.
         """
-        self.lock = threading.Lock()
         mails = self.list(maxResults=maxResults)
         self.message_and_thread_ids.extend(mails["messages"])
         if multi_thread_config:
+            self.lock = threading.Lock()
             with ThreadPoolExecutor(
                 max_workers=multi_thread_config.get("num_workers")
             ) as exc:
                 list(
                     exc.map(
-                        self._scan_message_from_message_id, self.message_and_thread_ids
+                        partial(self._scan_message_from_message_id, in_thread=True),
+                        self.message_and_thread_ids,
                     )
                 )
+        else:
+            self._scan_message_from_message_id(self.message_and_thread_ids)
+
         save_messages_path = (
             save_messages_path
             if save_messages_path

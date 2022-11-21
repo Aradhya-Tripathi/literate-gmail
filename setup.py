@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-with open("./requirements.txt", "r") as req:
+with open("./requirements.txt") as req:
     requirements = req.read().strip().split("\n")
 
 setup(

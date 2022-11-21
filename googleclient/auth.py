@@ -19,7 +19,7 @@ def authenticate(
         success_message="Successfully Authenticate. You may close this window now.",
     )
     with open(token_path, "w") as token:
-        token.write((creds.to_json()))
+        token.write(creds.to_json())
     return creds.to_json()
 
 
