@@ -1,9 +1,6 @@
-import os
 from unittest import TestCase
 
 from googleclient.gmail import Messages, Users
-
-os.environ["CI"] = "True"
 
 
 class TestMessages(TestCase):

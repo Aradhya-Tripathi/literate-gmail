@@ -2,6 +2,7 @@ import json
 import os
 
 import requests
+from dotenv import load_dotenv
 
 from googleclient.auth import get_credentials
 from googleclient.utils import PrintWithModule
@@ -18,6 +19,7 @@ standard_params = {
     "access_token": None,
     "prettyPrint": True,
 }
+load_dotenv()
 
 
 class GmailAPI:
@@ -34,7 +36,11 @@ class GmailAPI:
         """
         # Since here we are using OAuth2.0 we need an access token on user's behalf
         # Since this Token is on users behalf we use the Bearer Token type.
-        self.creds = json.loads(get_credentials(new_user=new_user))
+        self.creds = (
+            json.loads(get_credentials(new_user=new_user))
+            if not os.getenv("CI")
+            else {"token": "In-Test-Token"}
+        )
         self.always_json = always_json
         self.client = client
         self.base_url = f"https://gmail.googleapis.com/gmail/{version}/"

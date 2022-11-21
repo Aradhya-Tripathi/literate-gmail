@@ -1,9 +1,6 @@
-import os
 from unittest import TestCase
 
 from googleclient.gmail import Drafts
-
-os.environ["CI"] = "1"
 
 
 class TestDraft(TestCase):
