@@ -1,3 +1,7 @@
 {
-    "authentication_file_path": ""
+  "authentication_file_path": "",
+  "scopes": [
+    "https://www.googleapis.com/auth/photoslibrary.readonly",
+    "https://mail.google.com/"
+  ]
 }

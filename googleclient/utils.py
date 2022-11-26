@@ -1,4 +1,11 @@
 import sys
+import json
+
+
+class Json(dict):
+    def save(self):
+        with open("./settings.json", "w") as f:
+            f.write(json.dumps(self, indent=2))
 
 
 def confirm(action: str = None):

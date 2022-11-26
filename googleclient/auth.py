@@ -4,12 +4,13 @@ import os
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-SCOPES = ["https://mail.google.com/"]
+from googleclient.utils import Json
 
 with open("./settings.json") as f:
-    settings = json.loads(f.read())
+    settings = Json(json.loads(f.read()))
 
 PARENT_PATH = settings["authentication_file_path"]
+SCOPES = settings["scopes"]
 
 
 def authenticate(credentials_path: str, token_path: str) -> dict:
@@ -55,5 +56,19 @@ def get_credentials(new_user: bool = False) -> Credentials:
 def edit_authentication_file_path(path: str):
     if not os.path.isabs(path):
         path = os.path.abspath(os.path.expanduser(path))
-    with open("./settings.json", "w") as f:
-        f.write(json.dumps({"authentication_file_path": path}, indent=4))
+    settings["authentication_file_path"] = path
+    settings.save()
+
+
+def add_scope(scope):
+    settings["scopes"].append(scope)
+    settings.save()
+
+
+def remove_scope(scope):
+    scopes = settings["scopes"]
+    if scope in scopes:
+        scopes.remove(scope)
+
+    settings["scopes"] = scopes
+    settings.save()
