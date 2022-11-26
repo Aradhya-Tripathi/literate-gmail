@@ -1,18 +1,18 @@
+import json
 import os
-from pathlib import Path
 
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
 SCOPES = ["https://mail.google.com/"]
-PARENT_PATH = Path(__file__).resolve().parent.parent
-CREDENTIALS_PATH = os.path.join(PARENT_PATH, "secure", "credentials.json")
-TOKEN_PATH = os.path.join(PARENT_PATH, "secure", "token.json")
+
+with open("./settings.json") as f:
+    settings = json.loads(f.read())
+
+PARENT_PATH = settings["authentication_file_path"]
 
 
-def authenticate(
-    credentials_path: str = CREDENTIALS_PATH, token_path: str = TOKEN_PATH
-) -> dict:
+def authenticate(credentials_path: str, token_path: str) -> dict:
     flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
     creds = flow.run_local_server(
         port=0,
@@ -23,15 +23,18 @@ def authenticate(
     return creds.to_json()
 
 
-def get_credentials(
-    credentials_path: str = CREDENTIALS_PATH,
-    token_path: str = TOKEN_PATH,
-    new_user: bool = False,
-) -> Credentials:
+def get_credentials(new_user: bool = False) -> Credentials:
+    global PARENT_PATH
+    if not PARENT_PATH:
+        PARENT_PATH = input("Where do you want to store your tokens?: \n")
+        edit_authentication_file_path(path=PARENT_PATH)
+    credentials_path = os.path.join(PARENT_PATH, "credentials.json")
+    token_path = os.path.join(PARENT_PATH, "token.json")
+
     def _new():
-        if not os.path.exists(CREDENTIALS_PATH):
+        if not os.path.exists(credentials_path):
             raise ValueError(
-                f"Create a credentials file here {CREDENTIALS_PATH} obtained from google oauth client setup"
+                f"Create a credentials file here {credentials_path} obtained from google oauth client setup"
             )
         return authenticate(credentials_path, token_path)
 
@@ -47,3 +50,10 @@ def get_credentials(
         if not os.path.exists(credentials_path):
             raise ValueError(f"Expected a credentials file here {credentials_path}")
         return _new()
+
+
+def edit_authentication_file_path(path: str):
+    if not os.path.isabs(path):
+        path = os.path.abspath(os.path.expanduser(path))
+    with open("./settings.json", "w") as f:
+        f.write(json.dumps({"authentication_file_path": path}, indent=4))
