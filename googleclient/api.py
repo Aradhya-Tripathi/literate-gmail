@@ -31,10 +31,6 @@ class BaseAPI:
         always_json: bool = True,
         new_user: bool = False,
     ) -> None:
-        """
-        All these methods could be jammed into one method however in this case,
-        method chaining seems more readable and usage. :)
-        """
         # Since here we are using OAuth2.0 we need an access token on user's behalf
         # Since this Token is on users behalf we use the Bearer Token type.
         self.creds = (
