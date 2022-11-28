@@ -1,8 +1,16 @@
 import sys
+import json
+
+
+class Json(dict):
+    def save(self):
+        with open("./settings.json", "w") as f:
+            f.write(json.dumps(self, indent=2))
+            f.write("\n")
 
 
 def confirm(action: str = None):
-    choice = input(action)
+    choice = input(action).lower()
     go_ahead = False
     if choice == "y":
         go_ahead = True
@@ -14,7 +22,7 @@ def confirm(action: str = None):
     return go_ahead
 
 
-def _apply_batch_delete_filters(message_ids):
+def apply_batch_delete_filters(message_ids):
     def _remove_from(message_id):
         return message_id[-15:]
 

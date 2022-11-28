@@ -3,12 +3,13 @@ import os
 import threading
 import typing
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from pathlib import Path
 
 from googleclient.gmail.api import GmailAPI
 from googleclient.utils import (
     PrintWithModule,
-    _apply_batch_delete_filters,
+    apply_batch_delete_filters,
     apply_filters,
     confirm,
 )
@@ -27,9 +28,9 @@ class Gmail:
 
     def __init__(self, userId: str = "me", new_user: bool = False) -> None:
         self.userId = userId
-        self.service = self.resource(new_user=new_user)
+        self.service = self.build(new_user=new_user)
 
-    def resource(self, version: str = "v1", new_user: bool = False):
+    def build(self, version: str = "v1", new_user: bool = False):
         return GmailAPI(version=version, new_user=new_user)
 
 
@@ -56,7 +57,7 @@ class Messages(Gmail):
         """
         Function representing users.messages.delete
         """
-        self.service.messages(userId=self.userId, resource=message_id).dispatch(
+        return self.service.messages(userId=self.userId, resource=message_id).dispatch(
             method="delete"
         )
 
@@ -102,7 +103,7 @@ class Messages(Gmail):
                 with open(deleted_message_path, "w") as dm:
                     dm.write(json.dumps(to_delete_with_snippet, indent=4))
 
-            to_delete = _apply_batch_delete_filters(to_delete)
+            to_delete = apply_batch_delete_filters(to_delete)
         else:
             to_delete = message_ids
 
@@ -112,24 +113,42 @@ class Messages(Gmail):
                 resource="batchDelete",
             ).dispatch(method="post", json=dict(ids=to_delete))
 
-    def _scan_message_from_message_id(self, messages: dict):
-        """
-        Populates the self.messages dict in the format
-        From-messageId: Snippet
-        """
-        message_id = messages["id"]
-        print_with_module("Working on: ", message_id)
+    def get_message_from_message_id(self, message_id, in_thread: bool = False):
         try:
             message = self.service.messages(
                 userId=self.userId, resource=message_id
             ).dispatch(method="get")
             for index in message["payload"]["headers"]:
                 if index["name"] == "From":
-                    self.lock.acquire()
-                    self.messages[f"{index['value']}-{message_id}"] = message["snippet"]
-                    self.lock.release()
+                    if in_thread:
+                        self.lock.acquire()
+                        self.messages[f"{index['value']}-{message_id}"] = message[
+                            "snippet"
+                        ]
+                        self.lock.release()
+                    else:
+                        self.messages[f"{index['value']}-{message_id}"] = message[
+                            "snippet"
+                        ]
         except Exception as e:
             print_with_module(f"Message Id Errored Out: {message_id}\nException: {e}")
+
+    def _scan_message_from_message_id(self, messages: dict, in_thread: bool = False):
+        """
+        Populates the self.messages dict in the format
+        From-messageId: Snippet
+        """
+        if isinstance(messages, list):
+            for message in messages:
+                message_id = message["id"]
+                print_with_module("Working on: ", message_id)
+                self.get_message_from_message_id(
+                    message_id=message_id, in_thread=in_thread
+                )
+        else:
+            message_id = messages["id"]
+            print_with_module("Working on: ", message_id)
+            self.get_message_from_message_id(message_id=message_id, in_thread=in_thread)
 
     def scan_messages(
         self,
@@ -139,19 +158,25 @@ class Messages(Gmail):
     ):
         """
         Scan from and first 100 messages in users inbox.
+        to be used only by the batchDelete Message API
+        for easy use.
         """
-        self.lock = threading.Lock()
         mails = self.list(maxResults=maxResults)
         self.message_and_thread_ids.extend(mails["messages"])
         if multi_thread_config:
+            self.lock = threading.Lock()
             with ThreadPoolExecutor(
                 max_workers=multi_thread_config.get("num_workers")
             ) as exc:
                 list(
                     exc.map(
-                        self._scan_message_from_message_id, self.message_and_thread_ids
+                        partial(self._scan_message_from_message_id, in_thread=True),
+                        self.message_and_thread_ids,
                     )
                 )
+        else:
+            self._scan_message_from_message_id(self.message_and_thread_ids)
+
         save_messages_path = (
             save_messages_path
             if save_messages_path
@@ -167,30 +192,32 @@ class Drafts(Gmail):
 
         return base64.urlsafe_b64encode(message.as_string().encode()).decode()
 
-    def createDraft(self, message: "EmailMessage"):
+    def create(self, message: "EmailMessage"):
         encoded_message = self._encode_draft_message(message=message)
         return self.service.drafts(userId=self.userId).dispatch(
             method="post",
             json={"message": {"raw": encoded_message}},
         )
 
-    def deleteDraft(self, id: str):
-        self.service.drafts(userId=self.userId, resource=id).dispatch(method="delete")
+    def delete(self, id: str):
+        return self.service.drafts(userId=self.userId, resource=id).dispatch(
+            method="delete"
+        )
 
-    def getDraft(self, id: str):
+    def get(self, id: str):
         return self.service.drafts(userId=self.userId, resource=id).dispatch(
             method="get"
         )
 
-    def listDraft(self):
+    def list(self):
         return self.service.drafts(userId=self.userId).dispatch(method="get")
 
-    def sendDraft(self, id: str):
+    def send(self, id: str):
         return self.service.drafts(userId=self.userId, resource="send").dispatch(
             method="post", json=dict(id=id)
         )
 
-    def updateDraft(self, id: str, message: "EmailMessage"):
+    def update(self, id: str, message: "EmailMessage"):
         encoded_message = self._encode_draft_message(message=message)
         return self.service.drafts(userId=self.userId, resource=id).dispatch(
             method="put",
@@ -199,7 +226,8 @@ class Drafts(Gmail):
 
 
 class History(Gmail):
-    ...
+    def list(self, **kwargs):
+        return self.service.history(userId=self.userId).dispatch(method="get", **kwargs)
 
 
 class Users(Gmail):

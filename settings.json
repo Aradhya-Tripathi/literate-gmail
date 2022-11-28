@@ -1,0 +1,7 @@
+{
+  "authentication_file_path": "",
+  "scopes": [
+    "https://www.googleapis.com/auth/photoslibrary",
+    "https://mail.google.com/"
+  ]
+}
