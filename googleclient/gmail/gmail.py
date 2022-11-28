@@ -9,7 +9,7 @@ from pathlib import Path
 from googleclient.gmail.api import GmailAPI
 from googleclient.utils import (
     PrintWithModule,
-    _apply_batch_delete_filters,
+    apply_batch_delete_filters,
     apply_filters,
     confirm,
 )
@@ -103,7 +103,7 @@ class Messages(Gmail):
                 with open(deleted_message_path, "w") as dm:
                     dm.write(json.dumps(to_delete_with_snippet, indent=4))
 
-            to_delete = _apply_batch_delete_filters(to_delete)
+            to_delete = apply_batch_delete_filters(to_delete)
         else:
             to_delete = message_ids
 

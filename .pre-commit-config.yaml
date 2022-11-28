@@ -8,7 +8,6 @@ repos:
       - id: check-merge-conflict
       - id: check-ast
       - id: check-json
-      - id: check-toml
       - id: check-yaml
       - id: debug-statements
 
@@ -23,3 +22,10 @@ repos:
     hooks:
       - id: black
         additional_dependencies: ["click==8.0.4"]
+
+  - repo: local
+    hooks:
+      - id: custom-pre-commit
+        name: Check remove authentication path
+        entry: python precommit.py
+        language: python
