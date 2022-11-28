@@ -16,3 +16,10 @@ class PhotosAPI(BaseAPI):
             always_json=always_json,
             new_user=new_user,
         )
+
+    def albums(self, albumId: str = None, resource: str = None):
+        self.current_request = (
+            self.base_url
+            + f"albums/{albumId if albumId else ''}{'/' + resource if resource else ''}"
+        )
+        return self

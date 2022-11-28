@@ -45,6 +45,7 @@ class BaseAPI:
             "Content-Type": "application/json",
             "Authorization": f"{authentication_type} {self.creds['token']}",
         }
+        self.current_request = None
 
     def dispatch(
         self,

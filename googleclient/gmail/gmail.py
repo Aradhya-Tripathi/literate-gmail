@@ -28,9 +28,9 @@ class Gmail:
 
     def __init__(self, userId: str = "me", new_user: bool = False) -> None:
         self.userId = userId
-        self.service = self.resource(new_user=new_user)
+        self.service = self.build(new_user=new_user)
 
-    def resource(self, version: str = "v1", new_user: bool = False):
+    def build(self, version: str = "v1", new_user: bool = False):
         return GmailAPI(version=version, new_user=new_user)
 
 

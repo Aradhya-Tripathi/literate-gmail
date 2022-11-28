@@ -72,3 +72,8 @@ def remove_scope(scope):
 
     settings["scopes"] = scopes
     settings.save()
+
+
+def purge_tokens():
+    path_to_creds = settings["authentication_file_path"]
+    os.remove(os.path.join(path_to_creds, "token.json"))
