@@ -1,9 +1,9 @@
-from unittest import TestCase
+from googleclient.tests import BaseTestClass
 
 from googleclient.gmail import Messages, Users
 
 
-class TestMessages(TestCase):
+class TestMessages(BaseTestClass):
     def test_user_profile(self):
         request_object = Users().getProfile()
         self.assertEqual(

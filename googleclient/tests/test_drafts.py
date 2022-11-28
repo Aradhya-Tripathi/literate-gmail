@@ -1,9 +1,9 @@
-from unittest import TestCase
+from googleclient.tests import BaseTestClass
 
 from googleclient.gmail import Drafts
 
 
-class TestDraft(TestCase):
+class TestDraft(BaseTestClass):
     def test_list(self):
         prepared_request = Drafts().list()
         self.assertEqual(

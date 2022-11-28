@@ -1,9 +1,9 @@
-from unittest import TestCase
+from googleclient.tests import BaseTestClass
 
 from googleclient.photos import Albums
 
 
-class TestPhotos(TestCase):
+class TestPhotos(BaseTestClass):
     def test_albums(self):
         self.assertEqual(
             Albums().list().url,

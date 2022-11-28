@@ -2,7 +2,6 @@ import json
 import os
 
 import requests
-from dotenv import load_dotenv
 
 from googleclient.auth import get_credentials
 from googleclient.utils import PrintWithModule
@@ -19,7 +18,6 @@ standard_params = {
     "access_token": None,
     "prettyPrint": True,
 }
-load_dotenv()
 
 
 class BaseAPI:
@@ -54,9 +52,10 @@ class BaseAPI:
         params: dict = None,
         json: dict = None,
         standard_params: dict = standard_params,
+        timeout: int = 5,
     ):
         def _send():
-            response = self.client.send(request=prepared_request, timeout=5)
+            response = self.client.send(request=prepared_request, timeout=timeout)
             if not response.ok:
                 try:
                     reason = response.json()
